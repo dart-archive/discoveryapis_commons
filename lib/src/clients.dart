@@ -8,6 +8,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:meta/meta.dart';
 
 import 'requests.dart' as client_requests;
 
@@ -858,6 +859,7 @@ Future<http.StreamedResponse> _validateResponse(
   // TODO: We assume that status codes between [200..400[ are OK.
   // Can we assume this?
   if (statusCode < 200 || statusCode >= 400) {
+    @alwaysThrows
     void throwGeneralError() {
       throw client_requests.DetailedApiRequestError(
           statusCode, 'No error details. HTTP status was: $statusCode.');
