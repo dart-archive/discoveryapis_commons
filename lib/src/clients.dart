@@ -853,45 +853,36 @@ class Escaper {
 }
 
 Future<http.StreamedResponse> _validateResponse(
-    http.StreamedResponse response) {
+    http.StreamedResponse response) async {
   var statusCode = response.statusCode;
 
-  // TODO: We assume that status codes between [200..400[ are OK.
+  // TODO: We assume that status codes between [200..400] are OK.
   // Can we assume this?
   if (statusCode < 200 || statusCode >= 400) {
-    @alwaysThrows
-    void throwGeneralError() {
-      throw client_requests.DetailedApiRequestError(
-          statusCode, 'No error details. HTTP status was: $statusCode.');
-    }
-
     // Some error happened, try to decode the response and fetch the error.
     var stringStream = _decodeStreamAsText(response);
     if (stringStream != null) {
-      return stringStream.transform(json.decoder).first.then((jsonResponse) {
-        if (jsonResponse is Map && jsonResponse['error'] is Map) {
-          final Map error = jsonResponse['error'];
-          final code = error['code'] as int;
-          final message = error['message'] as String;
-          var errors = <client_requests.ApiRequestErrorDetail>[];
-          if (error.containsKey('errors') && error['errors'] is List) {
-            errors = (error['errors'] as List)
-                .map((e) =>
-                    client_requests.ApiRequestErrorDetail.fromJson(e as Map))
-                .toList();
-          }
-          throw client_requests.DetailedApiRequestError(code, message,
-              errors: errors);
-        } else {
-          throwGeneralError();
+      var jsonResponse = await stringStream.transform(json.decoder).first;
+      if (jsonResponse is Map && jsonResponse['error'] is Map) {
+        final Map error = jsonResponse['error'];
+        final code = error['code'] as int;
+        final message = error['message'] as String;
+        var errors = <client_requests.ApiRequestErrorDetail>[];
+        if (error.containsKey('errors') && error['errors'] is List) {
+          errors = (error['errors'] as List)
+              .map((e) =>
+                  client_requests.ApiRequestErrorDetail.fromJson(e as Map))
+              .toList();
         }
-      });
-    } else {
-      throwGeneralError();
+        throw client_requests.DetailedApiRequestError(code, message,
+            errors: errors);
+      }
     }
+    throw client_requests.DetailedApiRequestError(
+        statusCode, 'No error details. HTTP status was: $statusCode.');
   }
 
-  return Future.value(response);
+  return response;
 }
 
 Stream<String> _decodeStreamAsText(http.StreamedResponse response) {
