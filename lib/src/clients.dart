@@ -8,7 +8,6 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import 'package:meta/meta.dart';
 
 import 'requests.dart' as client_requests;
 
@@ -51,7 +50,7 @@ class ApiRequester {
       client_requests.Media uploadMedia,
       client_requests.UploadOptions uploadOptions,
       client_requests.DownloadOptions downloadOptions =
-          client_requests.DownloadOptions.Metadata}) {
+          client_requests.DownloadOptions.Metadata}) async {
     if (uploadMedia != null &&
         downloadOptions != client_requests.DownloadOptions.Metadata) {
       throw ArgumentError('When uploading a [Media] you cannot download a '
@@ -64,63 +63,55 @@ class ApiRequester {
     }
     queryParams = queryParams?.cast<String, List<String>>();
 
-    return _request(requestUrl, method, body, queryParams, uploadMedia,
-            uploadOptions, downloadOptions, downloadRange)
-        .then(_validateResponse)
-        .then((http.StreamedResponse response) {
-      if (downloadOptions == null) {
-        // If no download options are given, the response is of no interest
-        // and we will drain the stream.
-        return response.stream.drain();
-      } else if (downloadOptions == client_requests.DownloadOptions.Metadata) {
-        // Downloading JSON Metadata
-        var stringStream = _decodeStreamAsText(response);
-        if (stringStream != null) {
-          return stringStream.join('').then((String bodyString) {
-            if (bodyString == '') return null;
-            return json.decode(bodyString);
-          });
-        } else {
-          throw client_requests.ApiRequestError(
-              'Unable to read response with content-type '
-              "${response.headers['content-type']}.");
-        }
-      } else {
-        // Downloading Media.
-        var contentType = response.headers['content-type'];
-        if (contentType == null) {
-          throw client_requests.ApiRequestError(
-              "No 'content-type' header in media response.");
-        }
-        int contentLength;
-        try {
-          contentLength = int.parse(response.headers['content-length']);
-        } catch (_) {
-          // We silently ignore errors here. If no content-length was specified
-          // we use `null`.
-          // Please note that the code below still asserts the content-length
-          // is correct for range downloads.
-        }
+    var response = await _request(requestUrl, method, body, queryParams,
+        uploadMedia, uploadOptions, downloadOptions, downloadRange);
 
-        if (downloadRange != null) {
-          if (contentLength != downloadRange.length) {
-            throw client_requests.ApiRequestError(
-                'Content length of response does not match requested range '
-                'length.');
-          }
-          var contentRange = response.headers['content-range'];
-          var expected = 'bytes ${downloadRange.start}-${downloadRange.end}/';
-          if (contentRange == null || !contentRange.startsWith(expected)) {
-            throw client_requests.ApiRequestError('Attempting partial '
-                "download but got invalid 'Content-Range' header "
-                '(was: $contentRange, expected: $expected).');
-          }
-        }
+    response = await _validateResponse(response);
 
-        return client_requests.Media(response.stream, contentLength,
-            contentType: contentType);
+    if (downloadOptions == null) {
+      // If no download options are given, the response is of no interest
+      // and we will drain the stream.
+      return response.stream.drain();
+    } else if (downloadOptions == client_requests.DownloadOptions.Metadata) {
+      // Downloading JSON Metadata
+      var stringStream = _decodeStreamAsText(response);
+      if (stringStream == null) {
+        throw client_requests.ApiRequestError(
+            'Unable to read response with content-type '
+            "${response.headers['content-type']}.");
       }
-    });
+
+      var bodyString = await stringStream.join('');
+      if (bodyString.isEmpty) return null;
+      return json.decode(bodyString);
+    }
+
+    // Downloading Media.
+    var contentType = response.headers['content-type'];
+    if (contentType == null) {
+      throw client_requests.ApiRequestError(
+          "No 'content-type' header in media response.");
+    }
+
+    var contentLength = int.tryParse(response.headers['content-length']);
+
+    if (downloadRange != null) {
+      if (contentLength != downloadRange.length) {
+        throw client_requests.ApiRequestError(
+            'Content length of response does not match requested range '
+            'length.');
+      }
+      var contentRange = response.headers['content-range'];
+      var expected = 'bytes ${downloadRange.start}-${downloadRange.end}/';
+      if (contentRange == null || !contentRange.startsWith(expected)) {
+        throw client_requests.ApiRequestError('Attempting partial '
+            "download but got invalid 'Content-Range' header "
+            '(was: $contentRange, expected: $expected).');
+      }
+    }
+
+    return client_requests.Media(response.stream, contentLength,
+        contentType: contentType);
   }
 
   Future<http.StreamedResponse> _request(
