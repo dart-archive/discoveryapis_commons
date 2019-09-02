@@ -206,12 +206,14 @@ class ApiRequester {
           'content-type': CONTENT_TYPE_JSON_UTF8,
           'content-length': '$length',
           'range': 'bytes=${downloadRange.start}-${downloadRange.end}',
+          'x-goog-api-client': 'gl-dart/2.0.0',
         };
       } else {
         headers = {
           'user-agent': _userAgent,
           'content-type': CONTENT_TYPE_JSON_UTF8,
           'content-length': '$length',
+          'x-goog-api-client': 'gl-dart/2.0.0',
         };
       }
       // Filter out headers forbidden in the browser (in calling in browser).
