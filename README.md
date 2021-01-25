@@ -1,10 +1,3 @@
-# discoveryapis_commons
+This repository is archived.
 
-A package used by client libraries generated from discovery
-documents. This package is not intended to be consumed directly.
-
-## Features and bugs
-
-Please file feature requests and bugs at the [issue tracker][tracker].
-
-[tracker]: https://github.com/dart-lang/discoveryapis_commons/issues
+The code now lives at https://github.com/dart-lang/googleapis/tree/master/discoveryapis_common
