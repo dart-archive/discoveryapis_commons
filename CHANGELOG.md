@@ -1,3 +1,10 @@
+## 0.2.1
+
+- Removed a `library` directive causing the API docs to be hidden.
+- Fixed a number of documentation comment issues.
+- Now requires Dart `2.10.0`.
+- Allow the latest `package:http`.
+
 ## 0.2.0
 
  - Changed `ApiRequestError` (and its subclass `DetailedApiRequestError`) from
