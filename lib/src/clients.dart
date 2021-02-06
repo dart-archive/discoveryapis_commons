@@ -38,14 +38,14 @@ class ApiRequester {
   }
 
   /// Sends a HTTPRequest using [method] (usually GET or POST) to [requestUrl]
-  /// using the specified [urlParams] and [queryParams]. Optionally include a
+  /// using the specified [queryParams]. Optionally include a
   /// [body] and/or [uploadMedia] in the request.
   ///
   /// If [uploadMedia] was specified [downloadOptions] must be
-  /// [DownloadOptions.Metadata] or `null`.
+  /// [client_requests.DownloadOptions.Metadata] or `null`.
   ///
-  /// If [downloadOptions] is [DownloadOptions.Metadata] the result will be
-  /// decoded as JSON.
+  /// If [downloadOptions] is [client_requests.DownloadOptions.Metadata] the
+  /// result will be decoded as JSON.
   ///
   /// If [downloadOptions] is `null` the result will be a Future completing with
   /// `null`.
@@ -589,10 +589,7 @@ class ResumableMediaUploader {
     return tryUpload(_options.numberOfAttempts - 1);
   }
 
-  /// Uploads [length] bytes in [byteArrays] and ensures the upload was
-  /// successful.
-  ///
-  /// Content-Range: [start ... (start + length)[
+  /// Uploads [chunk] and ensures the upload was successful.
   ///
   /// Returns the returned [http.StreamedResponse] or completes with an error if
   /// the upload did not succeed. The response stream will not be listened to.
